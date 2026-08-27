@@ -7,26 +7,26 @@
 # ******************************************************************************
 """Input generation for ORCA (https://www.faccts.de/orca/)."""
 
-from .input_blocks import SCF, Basis, ElProp, format_block_keyword
-from .simple_keywords import (
-    RunType,
-    Output,
-    match_simple_keyword,
-)
-from .dft import Composite, Functionals, Disp
-from .wft import MP2, CoupledCluster
+from ..utilities import Element
 from .basis_sets import (
-    PopleBasisSet,
-    def2BasisSet,
     JensenBasisSet,
-    ccBasisSet,
+    PopleBasisSet,
     RelativisticBasisSet,
-    get_basis_set,
+    ccBasisSet,
+    def2BasisSet,
     get_aux_basis,
     get_basis_family,
+    get_basis_set,
 )
-from .implicit_solvation import Solvent, SolvationModel
-from ..utilities import Element
+from .dft import Composite, Disp, Functionals
+from .implicit_solvation import SolvationModel, Solvent
+from .input_blocks import SCF, Basis, ElProp, format_block_keyword
+from .simple_keywords import (
+    Output,
+    RunType,
+    match_simple_keyword,
+)
+from .wft import MP2, CoupledCluster
 
 
 def write_block(block_name: str, keys_vals: dict):
@@ -131,9 +131,7 @@ def generateInputFile(input_json: dict) -> tuple[str, list[str], list[str]]:
         simple_keywords.append(method.value)
     elif isinstance(method, (MP2, CoupledCluster)):
         if auxc_basis is None:
-            warnings.append(
-                "No AuxC basis selected, please select one from the Basis tab."
-            )
+            warnings.append("No AuxC basis selected, please select one from the Basis tab.")
             simple_keywords.extend([method.value, basis_set])
         elif auxc_basis.parent_basis != basis_set.__class__.__name__:
             aux_fam = get_basis_family(auxc_basis.parent_basis)
@@ -195,11 +193,7 @@ def generateInputFile(input_json: dict) -> tuple[str, list[str], list[str]]:
     if nprocs != 1:
         generated_input += f"%pal\n    nprocs = {nprocs}\nend\n"
 
-    if (
-        constrain is True
-        and "atoms" in cjson
-        and ("constraints" in cjson or "frozen" in cjson)
-    ):
+    if constrain is True and "atoms" in cjson and ("constraints" in cjson or "frozen" in cjson):
         # check for constraints and frozen atoms in cjson
         generated_input += "%geom\n"
         generated_input += "    Constraints \n"
@@ -217,15 +211,11 @@ def generateInputFile(input_json: dict) -> tuple[str, list[str], list[str]]:
                 if len(constraint) == 4:
                     # angle
                     value, atom1, atom2, atom3 = constraint
-                    generated_input += (
-                        f"{{ A {atom1} {atom2} {atom3} {value:.6f} C }} \n"
-                    )
+                    generated_input += f"{{ A {atom1} {atom2} {atom3} {value:.6f} C }} \n"
                 if len(constraint) == 5:
                     # torsion / dihedral
                     value, atom1, atom2, atom3, atom4 = constraint
-                    generated_input += (
-                        f"{{ D {atom1} {atom2} {atom3} {atom4} {value:.6f} C }} \n"
-                    )
+                    generated_input += f"{{ D {atom1} {atom2} {atom3} {atom4} {value:.6f} C }} \n"
 
         # look for frozen atoms
         if "frozen" in cjson["atoms"]:
@@ -312,7 +302,7 @@ def generateInputFile(input_json: dict) -> tuple[str, list[str], list[str]]:
     return generated_input, warnings, syntax_groups
 
 
-def generateInput(input_json: dict, debug: bool) -> dict:
+def generateInput(input_json: dict, debug: bool) -> dict:  # noqa: FBT001
 
     generated_input, warnings, syntax_groups = generateInputFile(input_json)
 
